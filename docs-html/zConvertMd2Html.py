@@ -34,39 +34,36 @@ def change_md2html( match ):
     # ... because that would create false matches for cases like this: 
     #    [desc1](ref1) txt1 (desc2(ref2). txt2 [desc3](https://url1/doc1#anchor1)
     # since the match is still too greedy. 
-    mgroups = match.groups() 
+    mgroups = match.groups()
     refParts = mgroups[1].split("#")
     refFile  = refParts[0]
     lFile = refFile.lower()
-    if len(refParts) < 2:
-        refAnchor = ""
-    else:
-        refAnchor = "#" + refParts[1]
+    refAnchor = "" if len(refParts) < 2 else f"#{refParts[1]}"
     if lFile.startswith("http") or not lFile.endswith(".md") or lFile.startswith("../"):
         # not a reference to a local .md file => return unchanged match
         mSpan = match.span()
         new = match.string[ mSpan[0]: mSpan[1] ]
         print("\tkept reference: " + new)
     else:
-        new = "[%s](%s.html%s)" % (mgroups[0], refFile[:-3], refAnchor )
+        new = f"[{mgroups[0]}]({refFile[:-3]}.html{refAnchor})"
         print("\tadjusted reference: " + new)
     return new
 
 def generate(fnInput, fnBase4Output):
     if not os.path.isfile(fnInput):
-        print( "copying directory: %s to %s" % (fnInput,fnBase4Output) )
+        print(f"copying directory: {fnInput} to {fnBase4Output}")
         shutil.copytree( fnInput, fnBase4Output)
     elif fnInput.endswith(".md"):
-        print( "converting to html: " + fnInput)
+        print(f"converting to html: {fnInput}")
         # replace any link "[desc](ref.md)" with "[desc](ref.html" if ref does not start with "http" since we only want to change locally available documentation
         with open(fnInput) as finput:
             content = finput.read()
         new_content = re.sub(pat, change_md2html, content)
-        with open( fnBase4Output[:-3] + '.html', 'w') as foutput:
+        with open(f'{fnBase4Output[:-3]}.html', 'w') as foutput:
             foutput.write( markdown.markdown( new_content, extensions=['fenced_code', 'codehilite'] ) )
     else:
         # any other files might be resources (e.g. pictures) which probably need to be copied
-        print( "copying file: %s to %s" % (fnInput,fnBase4Output) )
+        print(f"copying file: {fnInput} to {fnBase4Output}")
         shutil.copy( fnInput, fnBase4Output)
 
 def remove_existing_dir(path):
@@ -82,7 +79,7 @@ os.chdir("..")
 cmd = "carp -x ./docs/core/generate_core_docs.carp"
 if platform.system()=="Windows":
     cmd = cmd.replace("/","\\")
-os.system(cmd)    
+os.system(cmd)
 os.chdir(pOld)
 print("... done\n")
 
@@ -90,7 +87,7 @@ for p in glob.glob("./*/"):
     remove_existing_dir(p)
 
 # generate html files
-for fname in glob.glob(docPath+"*"):
+for fname in glob.glob(f"{docPath}*"):
     generate( fname, fname[docPathLen:] )
 generate( "./core/README.md", "./core/README.md" )
 
